@@ -94,8 +94,8 @@ export default function ContactPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Direct Email</h3>
-                <a href="mailto:mindbridgexsolutions@gmail.com" className="text-[#0071e3] font-medium hover:underline text-lg">
-                  mindbridgexsolutions@gmail.com
+                <a href="mailto:careers@mindbridgex.in" className="text-[#0071e3] font-medium hover:underline text-lg">
+                  careers@mindbridgex.in
                 </a>
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function ContactPage() {
           <div className="pt-6 border-t border-[#d2d2d7]/40">
             <h4 className="font-semibold mb-2">Looking for a career?</h4>
             <p className="text-[#86868b] text-sm">
-              Use the form to upload your resume. It will be delivered directly to mindbridgexsolutions@gmail.com.
+              Use the form to upload your resume. It will be delivered directly to careers@mindbridgex.in.
             </p>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function ContactPage() {
               </div>
               <h3 className="text-3xl font-semibold">Message Sent Successfully!</h3>
               <p className="text-[#86868b] text-lg max-w-md mx-auto">
-                Thank you for reaching out. Your message and attachments have been successfully dispatched to <span className="text-[#1d1d1f] font-medium">mindbridgexsolutions@gmail.com</span>.
+                Thank you for reaching out. Your message and attachments have been successfully dispatched to <span className="text-[#1d1d1f] font-medium">careers@mindbridgex.in</span>.
               </p>
               <button 
                 onClick={() => { setSubmitted(false); setFile(null); }} 
@@ -234,7 +234,7 @@ export default function ContactPage() {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Sending to mindbridgexsolutions@gmail.com...
+                    <Loader2 className="w-5 h-5 animate-spin" /> Sending to careers@mindbridgex.in...
                   </>
                 ) : (
                   <>
