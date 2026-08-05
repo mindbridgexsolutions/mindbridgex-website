@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  phone     String?
+  role      String    @default("DEVOTEE")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+  reviews   Review[]
+}
+
+model Pandit {
+  id             String    @id @default(uuid())
+  name           String
+  phone          String    @unique
+  city           String
+  experienceYrs  Int       @default(5)
+  specialization String    // e.g., "Veda Rigveda, Griha Pravesh Specialist"
+  avatarUrl      String?
+  rating         Float     @default(5.0)
+  totalReviews   Int       @default(0)
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bookings       Booking[]
+  reviews        Review[]
+}
+
+model Ceremony {
+  id              String    @id @default(uuid())
+  name            String
+  slug            String    @unique
+  description     String
+  durationMinutes Int
+  basePrice       Int
+  category        String
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bookings        Booking[]
+  reviews         Review[]
+}
+
+model Booking {
+  id           String   @id @default(uuid())
+  userId       String
+  ceremonyId   String
+  panditId     String?
+  scheduledAt  DateTime
+  venueAddress String
+  notes        String?
+  totalPrice   Int
+  status       String   @default("PENDING")
+  panditName   String?
+  panditPhone  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ceremony Ceremony @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
+  pandit   Pandit?  @relation(fields: [panditId], references: [id], onDelete: SetNull)
+  review   Review?
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  bookingId   String   @unique
+  userId      String
+  ceremonyId  String
+  panditId    String?
+  rating      Int      // 1 to 5 stars
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ceremony Ceremony @relation(fields: [ceremonyId], references: [id], onDelete: Cascade)
+  pandit   Pandit?  @relation(fields: [panditId], references: [id], onDelete: SetNull)
+}
