@@ -12,7 +12,6 @@ async function main() {
       email: 'admin@vedasetu.com',
       name: 'VedaSetu Admin',
       role: 'ADMIN',
-      emailVerified: new Date(),
     },
   });
 
