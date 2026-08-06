@@ -1,354 +1,168 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import { 
-  ShieldCheck, 
-  CreditCard, 
-  QrCode, 
-  Building2, 
-  ArrowLeft, 
-  CheckCircle2, 
-  Lock,
-  Sparkles,
-  MessageSquare,
-  Smartphone
-} from "lucide-react";
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-interface NotificationLog {
-  channel: string;
-  recipient: string;
-  status: string;
-  message: string;
-  sentAt: string;
-}
-
-export default function CheckoutPage() {
-  const router = useRouter();
+function CheckoutContent() {
   const searchParams = useSearchParams();
+  const serviceId = searchParams.get('serviceId');
+  const serviceName = searchParams.get('name') || 'Vedic Ceremony';
+  const price = searchParams.get('price') || '2500';
 
-  const serviceTitle = searchParams.get("title") || "Sacred Vedic Ritual";
-  const basePrice = parseInt(searchParams.get("price") || "3100", 10);
-  const serviceId = searchParams.get("serviceId") || "ganesh-puja";
-  const date = searchParams.get("date") || "2026-08-15";
-  const timeSlot = searchParams.get("timeSlot") || "09:00 AM - 11:30 AM IST";
-  const address = searchParams.get("address") || "Kandivali West, Mumbai";
+  const [formData, setFormData] = useState({
+    name: 'Deepak Singh',
+    phone: '',
+    gotra: '',
+    address: '',
+    city: 'Mumbai',
+    preferredDate: '',
+  });
 
-  const [includeSamagri, setIncludeSamagri] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState<"upi" | "card" | "netbanking">("upi");
-  const [notifyWhatsapp, setNotifyWhatsapp] = useState(true);
-  const [notifySms, setNotifySms] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [notificationsSent, setNotificationsSent] = useState<NotificationLog[]>([]);
-
-  const samagriCost = includeSamagri ? 950 : 0;
-  const platformFee = 150;
-  const grandTotal = basePrice + samagriCost + platformFee;
-
-  const handlePayAndConfirm = async () => {
-    setIsProcessing(true);
-    setErrorMsg("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      // 1. Create Booking
-      const res = await fetch("/api/v1/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/v1/customer/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          serviceId,
-          date,
-          timeSlot,
-          address,
-          amountPaid: grandTotal,
-          hasSamagri: includeSamagri,
-          paymentStatus: "PAID",
+          ceremonyId: serviceId,
+          ceremonyName: serviceName,
+          amount: Number(price),
+          ...formData,
         }),
       });
 
-      const json = await res.json();
-      if (json.success) {
-        const bookingId = json.data?.id || "VS-2026-9001";
-
-        // 2. Dispatch SMS & WhatsApp Simulations
-        const channels: ("sms" | "whatsapp")[] = [];
-        if (notifyWhatsapp) channels.push("whatsapp");
-        if (notifySms) channels.push("sms");
-
-        if (channels.length > 0) {
-          const notifyRes = await fetch("/api/v1/notifications/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              bookingId,
-              phone: "8286972263",
-              ceremonyTitle: serviceTitle,
-              date,
-              timeSlot,
-              channels,
-            }),
-          });
-          const notifyJson = await notifyRes.json();
-          if (notifyJson.success && Array.isArray(notifyJson.data)) {
-            setNotificationsSent(notifyJson.data);
-          }
-        }
-
-        setIsSuccess(true);
-      } else {
-        setErrorMsg(json.message || "Payment authorization failed.");
+      const data = await res.json();
+      if (data.success || res.ok) {
+        setSuccess(true);
       }
     } catch (err) {
-      console.error("Payment submission error:", err);
-      setErrorMsg("Payment processing error. Please try again.");
+      console.error('Checkout Error:', err);
     } finally {
-      setIsProcessing(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#f5f5f7]/60 py-12 px-6">
-      <div className="max-w-3xl mx-auto space-y-6">
-        
-        {/* Navigation Back */}
-        <button 
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs text-[#86868b] hover:text-[#1d1d1f] transition"
+  if (success) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-6 bg-white rounded-3xl border border-orange-200/80 shadow-2xs">
+        <div className="w-16 h-16 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-3xl mx-auto">
+          ✓
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-950">
+          Booking Request Confirmed!
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto font-medium">
+          Your Sankalp details for <span className="font-bold text-amber-950">{serviceName}</span> have been registered. Our operations team will assign a verified Acharya shortly.
+        </p>
+        <a
+          href="/support"
+          className="inline-block px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-2xl transition shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Scheduling
-        </button>
-
-        {isSuccess ? (
-          <Card className="p-8 shadow-lg border-emerald-200 bg-white rounded-3xl space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h2 className="text-xl font-bold text-[#1d1d1f]">Payment & Booking Confirmed!</h2>
-              <p className="text-xs text-[#86868b]">
-                Your payment of <strong className="text-[#1d1d1f]">₹{grandTotal.toLocaleString("en-IN")}</strong> was successful.
-              </p>
-            </div>
-
-            {/* Simulated Notification Logs */}
-            {notificationsSent.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <span className="text-xs font-bold text-[#1d1d1f] block border-b pb-2">
-                  Instant Confirmation Dispatches
-                </span>
-                
-                <div className="space-y-2">
-                  {notificationsSent.map((log, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`p-3.5 rounded-2xl text-xs space-y-1 border ${
-                        log.channel === "WhatsApp" 
-                          ? "bg-emerald-50/70 border-emerald-200 text-emerald-950" 
-                          : "bg-blue-50/70 border-blue-200 text-blue-950"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="flex items-center gap-1.5">
-                          {log.channel === "WhatsApp" ? (
-                            <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                          ) : (
-                            <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-                          )}
-                          {log.channel} Alert Sent
-                        </span>
-                        <span className="text-[10px] opacity-70">{log.sentAt}</span>
-                      </div>
-                      <p className="text-[11px] leading-relaxed opacity-90 whitespace-pre-line font-mono">
-                        {log.message}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <Button size="md" className="w-full mt-4" onClick={() => router.push("/my-bookings")}>
-              View My Bookings
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            
-            {/* Left: Payment Method Options */}
-            <div className="md:col-span-3 space-y-6">
-              <Card className="p-6 bg-white rounded-3xl shadow-sm border border-[#d2d2d7]/50 space-y-6">
-                <div>
-                  <h1 className="text-xl font-bold text-[#1d1d1f]">Select Payment Method</h1>
-                  <p className="text-xs text-[#86868b] mt-0.5">Encrypted 256-bit SSL transaction gateway.</p>
-                </div>
-
-                {errorMsg && (
-                  <div className="p-3 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs">
-                    {errorMsg}
-                  </div>
-                )}
-
-                {/* Samagri Kit Toggle */}
-                <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/60 flex items-center justify-between">
-                  <div className="flex items-start gap-2.5">
-                    <Sparkles className="w-4 h-4 text-[#E65100] mt-0.5 shrink-0" />
-                    <div>
-                      <span className="text-xs font-bold text-[#1d1d1f] block">Pristine Puja Samagri Kit</span>
-                      <span className="text-[11px] text-[#86868b]">Fresh flowers, pure ghee, and Vidhi essentials (+₹950)</span>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={includeSamagri}
-                    onChange={(e) => setIncludeSamagri(e.target.checked)}
-                    className="w-4 h-4 accent-[#E65100] rounded cursor-pointer"
-                  />
-                </div>
-
-                {/* Method Options */}
-                <div className="space-y-3">
-                  <label 
-                    onClick={() => setPaymentMethod("upi")}
-                    className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
-                      paymentMethod === "upi" ? "border-[#E65100] bg-orange-50/20 ring-1 ring-[#E65100]" : "border-[#d2d2d7]/60"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <QrCode className="w-5 h-5 text-[#E65100]" />
-                      <div>
-                        <span className="text-xs font-bold text-[#1d1d1f] block">UPI / QR Code</span>
-                        <span className="text-[10px] text-[#86868b]">GPay, PhonePe, Paytm, BHIM</span>
-                      </div>
-                    </div>
-                    <input type="radio" name="payment" checked={paymentMethod === "upi"} readOnly className="accent-[#E65100]" />
-                  </label>
-
-                  <label 
-                    onClick={() => setPaymentMethod("card")}
-                    className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
-                      paymentMethod === "card" ? "border-[#E65100] bg-orange-50/20 ring-1 ring-[#E65100]" : "border-[#d2d2d7]/60"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5 text-[#E65100]" />
-                      <div>
-                        <span className="text-xs font-bold text-[#1d1d1f] block">Credit / Debit Card</span>
-                        <span className="text-[10px] text-[#86868b]">Visa, Mastercard, RuPay</span>
-                      </div>
-                    </div>
-                    <input type="radio" name="payment" checked={paymentMethod === "card"} readOnly className="accent-[#E65100]" />
-                  </label>
-
-                  <label 
-                    onClick={() => setPaymentMethod("netbanking")}
-                    className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
-                      paymentMethod === "netbanking" ? "border-[#E65100] bg-orange-50/20 ring-1 ring-[#E65100]" : "border-[#d2d2d7]/60"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-[#E65100]" />
-                      <div>
-                        <span className="text-xs font-bold text-[#1d1d1f] block">Net Banking</span>
-                        <span className="text-[10px] text-[#86868b]">All major Indian banks supported</span>
-                      </div>
-                    </div>
-                    <input type="radio" name="payment" checked={paymentMethod === "netbanking"} readOnly className="accent-[#E65100]" />
-                  </label>
-                </div>
-
-                {/* Instant Communication Toggles */}
-                <div className="pt-2 space-y-3">
-                  <span className="text-xs font-bold text-[#1d1d1f] block">Instant Dispatches</span>
-                  <div className="flex flex-col gap-2">
-                    <label className="flex items-center justify-between p-3 rounded-xl bg-[#f5f5f7] text-xs cursor-pointer">
-                      <span className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-emerald-600" />
-                        WhatsApp Confirmation & Pandit Contacts
-                      </span>
-                      <input 
-                        type="checkbox" 
-                        checked={notifyWhatsapp} 
-                        onChange={(e) => setNotifyWhatsapp(e.target.checked)}
-                        className="accent-[#E65100]" 
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between p-3 rounded-xl bg-[#f5f5f7] text-xs cursor-pointer">
-                      <span className="flex items-center gap-2">
-                        <Smartphone className="w-4 h-4 text-blue-600" />
-                        SMS Transaction Receipt
-                      </span>
-                      <input 
-                        type="checkbox" 
-                        checked={notifySms} 
-                        onChange={(e) => setNotifySms(e.target.checked)}
-                        className="accent-[#E65100]" 
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handlePayAndConfirm} 
-                  disabled={isProcessing}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  {isProcessing ? "Authorizing Payment..." : `Pay ₹${grandTotal.toLocaleString("en-IN")} & Confirm`}
-                </Button>
-              </Card>
-            </div>
-
-            {/* Right: Itemized Summary */}
-            <div className="md:col-span-2">
-              <Card className="p-6 bg-white rounded-3xl shadow-sm border border-[#d2d2d7]/50 space-y-4">
-                <h2 className="text-sm font-bold text-[#1d1d1f]">Booking Summary</h2>
-
-                <div className="space-y-1 text-xs border-b border-[#e5e5ea] pb-3">
-                  <span className="font-semibold text-[#1d1d1f] block">{serviceTitle}</span>
-                  <span className="text-[#86868b] block">{date} • {timeSlot}</span>
-                  <span className="text-[#86868b] block truncate">{address}</span>
-                </div>
-
-                <div className="space-y-2 text-xs text-[#1d1d1f]">
-                  <div className="flex justify-between">
-                    <span className="text-[#86868b]">Ritual Dakshina</span>
-                    <span>₹{basePrice.toLocaleString("en-IN")}</span>
-                  </div>
-
-                  {includeSamagri && (
-                    <div className="flex justify-between">
-                      <span className="text-[#86868b]">Samagri Kit</span>
-                      <span>₹950</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between">
-                    <span className="text-[#86868b]">Platform & Insurance</span>
-                    <span>₹{platformFee}</span>
-                  </div>
-
-                  <div className="border-t border-[#e5e5ea] pt-2 flex justify-between font-bold text-sm text-[#1d1d1f]">
-                    <span>Total Amount</span>
-                    <span className="text-[#E65100]">₹{grandTotal.toLocaleString("en-IN")}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                  <span>100% Dakshina Money-back Guarantee</span>
-                </div>
-              </Card>
-            </div>
-
-          </div>
-        )}
-
+          View Booking Support Desk
+        </a>
       </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto py-10 px-4 sm:px-6 space-y-8">
+      <div className="bg-gradient-to-r from-orange-100/90 via-amber-100/70 to-orange-50/80 border border-orange-200 rounded-3xl p-6 sm:p-8 space-y-2">
+        <span className="text-[10px] font-bold text-orange-950 uppercase tracking-widest px-3 py-1 bg-white/80 rounded-full border border-orange-200">
+          Sankalp & Event Details
+        </span>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-950">
+          Reserve Ceremony: {serviceName}
+        </h1>
+        <p className="text-xs text-amber-900/80 font-mono font-bold">
+          Estimated Dakshina: ₹{price}
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-3xl border border-orange-200/70 shadow-2xs space-y-4 text-xs">
+        <div>
+          <label className="text-orange-950 font-bold uppercase tracking-wider block mb-1">
+            Devotee Name
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full bg-orange-50/40 border border-orange-200 rounded-xl p-3 text-amber-950 focus:outline-hidden focus:border-orange-500 font-semibold"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-orange-950 font-bold uppercase tracking-wider block mb-1">
+              Contact Mobile Number
+            </label>
+            <input
+              type="tel"
+              required
+              placeholder="10-digit mobile number"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full bg-orange-50/40 border border-orange-200 rounded-xl p-3 text-amber-950 focus:outline-hidden focus:border-orange-500 font-semibold"
+            />
+          </div>
+
+          <div>
+            <label className="text-orange-950 font-bold uppercase tracking-wider block mb-1">
+              Family Gotra (Sankalp)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Kashyap / Bharadwaj"
+              value={formData.gotra}
+              onChange={(e) => setFormData({ ...formData, gotra: e.target.value })}
+              className="w-full bg-orange-50/40 border border-orange-200 rounded-xl p-3 text-amber-950 focus:outline-hidden focus:border-orange-500 font-semibold"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-orange-950 font-bold uppercase tracking-wider block mb-1">
+            Ceremony Venue Address
+          </label>
+          <textarea
+            rows={3}
+            required
+            placeholder="Full residence address where ceremony will take place..."
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            className="w-full bg-orange-50/40 border border-orange-200 rounded-xl p-3 text-amber-950 focus:outline-hidden focus:border-orange-500 font-semibold"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs transition shadow-2xs disabled:opacity-50"
+        >
+          {loading ? 'Processing Sankalp...' : 'Confirm Ceremony Booking'}
+        </button>
+      </form>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   );
 }
